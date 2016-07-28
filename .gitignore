@@ -55,13 +55,3 @@ crashlytics.properties
 crashlytics-build.properties
 fabric.properties
 
-.idea/compiler.xml
-.idea/copyright/
-.idea/encodings.xml
-.idea/misc.xml
-.idea/modules.xml
-nb-configuration.xml
-nbactions.xml
-pom.xml
-proThreaded.iml
-src/
