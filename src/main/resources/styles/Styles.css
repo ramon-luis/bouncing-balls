@@ -1,3 +1,11 @@
-.button {
-    -fx-font-weight: bold;
+.toggle-button {
+    -fx-background-image: url('/images/pause.png');
+    -fx-background-size: 25px;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: 95%;
+}
+
+.toggle-button:selected {
+    -fx-background-color: darkred;
+    -fx-effect: dropshadow(gaussian, red, 10, 0, 0, 1);
 }
