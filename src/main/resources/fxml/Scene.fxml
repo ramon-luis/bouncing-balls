@@ -11,10 +11,11 @@
 <VBox fx:id="vbFrame" prefWidth="800" prefHeight="500" xmlns:fx="http://javafx.com/fxml" fx:controller="proThreaded.FXMLController" >
     <ToolBar fx:id="tbSettings">
         <ToggleButton fx:id="tgbPause" minWidth="30" ></ToggleButton>
-
-        <Text fx:id="txtSpeed">Speed</Text>
-        <Slider fx:id="sldSpeed" min="0" max="50" value="5"  ></Slider>
-
+        <Button fx:id="btnAdd10" text="+10 balls"/>
+        <Text fx:id="txtFriction">Friction</Text>
+        <Slider fx:id="sldFriction" min="0" max="10" value="2"  ></Slider>
+        <Text fx:id="txtSpeed">Animation Speed</Text>
+        <Slider fx:id="sldSpeed" min="0" max="10" value="2"  ></Slider>
     </ToolBar>
     <AnchorPane fx:id="mAnchorPane" prefHeight="450" prefWidth="800" >
     </AnchorPane>

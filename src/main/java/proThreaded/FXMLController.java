@@ -1,21 +1,18 @@
 package proThreaded;
 
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 import java.util.ResourceBundle;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.application.Platform;
-import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Button;
 import javafx.scene.control.Slider;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.input.MouseEvent;
@@ -33,42 +30,45 @@ import javafx.util.Duration;
 
 public class FXMLController implements Initializable {
 
-    private static final int INITIAL_BALL_LIST_SIZE = 200;
+    private static final double MAX_RADIUS = 30;
+    private static final double MIN_RADIUS = 5;
     private static final Random sRandom = new Random();
 
-    private List<Ball> mBalls;
+    private CopyOnWriteArrayList<Ball> mBalls;
     private ExecutorService mThreadExecutor;
+    private double mFrictionFactor = 1;
 
     @FXML
     private AnchorPane mAnchorPane;
 
     @FXML
+    private ToggleButton tgbPause;
+
+    @FXML
+    private Button btnAdd10;
+
+    @FXML
     private Slider sldSpeed;
 
     @FXML
-    private ToggleButton tgbPause;
+    Slider sldFriction;
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
+        mBalls = new CopyOnWriteArrayList<>();
+        mThreadExecutor = Executors.newCachedThreadPool();
 
-        mBalls = new ArrayList<>(INITIAL_BALL_LIST_SIZE);
-        mThreadExecutor = Executors.newCachedThreadPool(); // this or threadpool?
-        mAnchorPane.addEventFilter(MouseEvent.MOUSE_CLICKED, this::addNewBall);
-
-        //Timeline animation = new Timeline(new KeyFrame(Duration.millis(50), e -> Platform.runLater(this::moveBalls)));
+        // create new timeline for animation, set cycle count, and play the animation
         Timeline animation = new Timeline(new KeyFrame(Duration.millis(50), e -> {
-            checkWalls();
-            checkCollisions();
             moveBalls();
+            mThreadExecutor.execute(new WallCheckTask());
+            mThreadExecutor.execute(new CollisionCheckTask());
+            mThreadExecutor.execute(new ApplyFrictionTask());
         }));
         animation.setCycleCount(Timeline.INDEFINITE);
         animation.play();
 
-        sldSpeed.valueProperty().addListener((observable, oldValue, newValue) -> {
-            animation.setRate( (double) newValue);
-        });
-
-
+        // play-pause toggle button
         tgbPause.selectedProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue) {
                 animation.pause();
@@ -76,90 +76,165 @@ public class FXMLController implements Initializable {
                 animation.play();
             }
         });
-    }
 
+        // anchor pane mouse click -> add single ball
+        mAnchorPane.addEventFilter(MouseEvent.MOUSE_CLICKED, this::addSingleBall);
 
-    private void addNewBall(MouseEvent mouseEvent) {
-        double dRadius = getRandomRadius();
-        // only add a new ball if the radius doesn't extend beyond borders -> prevents "bouncing" along axis
-        if (mouseEvent.getX() > dRadius && mouseEvent.getY() > dRadius) {
-            Ball ball = new Ball(mouseEvent.getX(), mouseEvent.getY(), dRadius);
-            mBalls.add(ball);
-            mAnchorPane.getChildren().add(ball);
-        }
-        //mThreadExecutor.execute(ball);
-    }
+        // button to add 10 balls on single click
+        btnAdd10.setOnAction(e -> addTenBalls());
 
+        sldFriction.valueProperty().addListener((observable, oldValue, newValue) -> {
+           mFrictionFactor = 1 - (double) newValue / 10000.0;
+        });
 
-    // http://gamedev.stackexchange.com/questions/20516/ball-collisions-sticking-together
-    private void checkCollisions(){
-        double xDist, yDist;
+        // slider for animation speed
+        sldSpeed.valueProperty().addListener((observable, oldValue, newValue) -> {
+            animation.setRate( (double) newValue);
+        });
+    }  // end initialize
 
-        // cycle through all balls
-        for(int i = 0; i < mBalls.size(); i++){
-            Ball ball = mBalls.get(i);
-
-            // check for collision against other balls
-            for(int j = i+1; j < mBalls.size(); j++){
-                Ball otherBall =  mBalls.get(j);
-
-                xDist = ball.getCenterX() - otherBall.getCenterX();
-                yDist = ball.getCenterY() - otherBall.getCenterY();
-                double distSquared = xDist*xDist + yDist*yDist;
-
-                //Check the squared distances instead of the the distances, same result, but avoids a square root.
-                if(distSquared <= (ball.getRadius() + otherBall.getRadius())*(ball.getRadius() + otherBall.getRadius())){
-                    double xVelocity = otherBall.getVelocityX() - ball.getVelocityX();
-                    double yVelocity = otherBall.getVelocityY() - ball.getVelocityY();
-                    double dotProduct = xDist*xVelocity + yDist*yVelocity;
-
-                    //Neat vector maths, used for checking if the objects moves towards one another.
-                    if(dotProduct > 0){
-                        double collisionScale = dotProduct / distSquared;
-                        double xCollision = xDist * collisionScale;
-                        double yCollision = yDist * collisionScale;
-
-                        //The Collision vector is the speed difference projected on the Dist vector,
-                        //thus it is the component of the speed difference needed for the collision.
-                        double combinedMass = ball.getMass() + otherBall.getMass();
-                        double collisionWeightA = 2 * otherBall.getMass() / combinedMass;
-                        double collisionWeightB = 2 * ball.getMass() / combinedMass;
-                        ball.setVelocityX(ball.getVelocityX() + collisionWeightA * xCollision);
-                        ball.setVelocityY(ball.getVelocityY() + collisionWeightA * yCollision);
-                        otherBall.setVelocityX(otherBall.getVelocityX() - collisionWeightB * xCollision);
-                        otherBall.setVelocityY(otherBall.getVelocityY() - collisionWeightB * yCollision);
-                    }
-                }
-            }
-        }
-    }
-
-    private void checkWalls() {
-        for (Ball ball : mBalls) {
-            double dCurrentX = ball.getCenterX();
-            double dCurrentY = ball.getCenterY();
-
-            // check for wall at left/right of frame
-            if (dCurrentX < ball.getRadius() || dCurrentX > mAnchorPane.getWidth() - ball.getRadius()) {
-                ball.setVelocityX(ball.getVelocityX() * -0.95);  // ball slows slightly for wall bounce
-            }
-
-            // check for wall at top/bottom of frame
-            if (dCurrentY < ball.getRadius() || dCurrentY > mAnchorPane.getHeight() - ball.getRadius()) {
-                ball.setVelocityY(ball.getVelocityY() * -0.95);  // ball slows slightly for wall bounce
-            }
-        }
-    }
-
-    private void moveBalls() {
+    // move the balls -> sets each ball to new x,y based on ball velocity
+    private void moveBalls() {  // perform this in main animation thread
         mBalls.forEach(Ball::move);
     }
 
-    private static double getRandomRadius() {
-        return sRandom.nextDouble() * 20 + 15;  // between 15.0 and 35.0
-
+    // add a single ball
+    private void addSingleBall(MouseEvent mouseEvent) {
+        createAndAddBall(mouseEvent.getX(), mouseEvent.getY());
     }
 
+    // add 10 balls
+    private void addTenBalls() {
+        double dMinXorY = MAX_RADIUS;
+        double dMaxX = mAnchorPane.getWidth() - MAX_RADIUS;
+        double dMaxY = mAnchorPane.getHeight() - MAX_RADIUS;
+        for (int i = 0; i < 10; i++) {
+            double dCenterX = getRandomInRange(dMinXorY, dMaxX);
+            double dCenterY = getRandomInRange(dMinXorY, dMaxY);
+            createAndAddBall(dCenterX, dCenterY);
+        }
+    }
+
+    // create a ball and add to the anchorpane
+    private void createAndAddBall(double dCenterX, double dCenterY) {
+        double dRadius = getRandomInRange(MIN_RADIUS, MAX_RADIUS);
+        Ball ball = new Ball(dCenterX, dCenterY, dRadius);
+        mBalls.add(ball);
+        mAnchorPane.getChildren().add(ball);
+    }
+
+    // apply friction to balls -> reduces the ball velocity based on friction factor
+    private class ApplyFrictionTask extends Task<Void> {
+        @Override
+        protected  Void call() throws  InterruptedException {
+            for (Ball ball: mBalls) {
+                ball.applyFriction(mFrictionFactor);
+            }
+            return null;
+        }  // end call
+    } // end ApplyFrictionTask
+
+    // task to check collisions between each ball and the boundaries of the anchorpane -> runs own thread
+     private class WallCheckTask extends Task<Void> {
+        @Override
+        protected Void call() throws InterruptedException {
+
+            // variables to store size of anchorpane
+            double dWidth = mAnchorPane.getWidth();
+            double dHeight = mAnchorPane.getHeight();
+
+            // loop through list of balls
+            for (Ball ball : mBalls) {
+
+                // store ball radius and velocity to only call 1x each
+                double dRadius = ball.getRadius();
+                double dVelocityX = ball.getVelocityX();
+                double dVelocityY = ball.getVelocityY();
+
+                // booleans for location
+                boolean bAtLeftWall = ball.getCenterX() <= dRadius;
+                boolean bAtRightWall = ball.getCenterX() >= (dWidth - dRadius);
+                boolean bAtTopWall = ball.getCenterY() <= dRadius;
+                boolean bAtBottomWall = ball.getCenterY() >= (dHeight - dRadius);
+
+                // booleans for movement
+                boolean bIsMovingLeft = dVelocityX < 0;
+                boolean bIsMovingRight = dVelocityX > 0;
+                boolean bIsMovingUp = dVelocityY < 0;
+                boolean bIsMovingDown = dVelocityY > 0;
+
+                // check left and right boundary
+                if ((bAtLeftWall && bIsMovingLeft) || (bAtRightWall&& bIsMovingRight)) {
+                    ball.setVelocityX(-dVelocityX);
+                }
+
+                // check upper and lower boundary
+                if ((bAtTopWall && bIsMovingUp) || (bAtBottomWall && bIsMovingDown)) {
+                    ball.setVelocityY(-dVelocityY);
+                }
+
+            } // end for (Ball ball...)
+            return null;
+        }  // end call
+    }  // end wallCheck task
+
+    // task to check collisions between balls -> runs in own thread
+    // http://gamedev.stackexchange.com/questions/20516/ball-collisions-sticking-together
+    private class CollisionCheckTask extends Task<Void> {
+        @Override
+        protected Void call() throws InterruptedException {
+            // variables to store x and y distance
+            double xDist, yDist;
+
+            // cycle through all balls
+            for (int i = 0, len = mBalls.size(); i < len; i++){
+                // access each ball in list
+                Ball ball = mBalls.get(i);
+
+                // check for collision against other balls "to right" in list -> each pair is only checked once
+                for (int j = i + 1; j < len; j++){
+                    // access "other" ball in list
+                    Ball otherBall =  mBalls.get(j);
+
+                    // calculate distance parameters
+                    xDist = ball.getCenterX() - otherBall.getCenterX();
+                    yDist = ball.getCenterY() - otherBall.getCenterY();
+                    double distSquared = xDist * xDist + yDist * yDist;
+
+                    // check if balls are colliding: squared distances avoids a square root
+                    if (distSquared <= (ball.getRadius() + otherBall.getRadius()) * (ball.getRadius() + otherBall.getRadius())){
+                        double xVelocity = otherBall.getVelocityX() - ball.getVelocityX();
+                        double yVelocity = otherBall.getVelocityY() - ball.getVelocityY();
+                        double dotProduct = xDist * xVelocity + yDist * yVelocity;
+
+                        // check if the objects are moving towards one another
+                        if (dotProduct > 0){
+                            double collisionScale = dotProduct / distSquared;
+                            double xCollision = xDist * collisionScale;
+                            double yCollision = yDist * collisionScale;
+
+                            // collision vector is the speed difference projected on the dist vector,
+                            double combinedMass = ball.getMass() + otherBall.getMass();
+                            double collisionWeightA = 2 * otherBall.getMass() / combinedMass;
+                            double collisionWeightB = 2 * ball.getMass() / combinedMass;
+
+                            // update velocity of each ball appropriately
+                            ball.setVelocityX(ball.getVelocityX() + collisionWeightA * xCollision);
+                            ball.setVelocityY(ball.getVelocityY() + collisionWeightA * yCollision);
+                            otherBall.setVelocityX(otherBall.getVelocityX() - collisionWeightB * xCollision);
+                            otherBall.setVelocityY(otherBall.getVelocityY() - collisionWeightB * yCollision);
+                        }  // end if (dotProduct > 0)
+                    }  // end if (distSquared...)
+                } // end for (j = i + 1...)
+            }  // end for (i = 0....)
+            return null;
+        }  // end call
+    }  // end collisionCheck task
+
+    // helper method to get a random double in a certain range
+    private static double getRandomInRange(double dMin, double dMax) {
+        return sRandom.nextDouble() * (dMax - dMin) + dMin;
+    }
 
 
 }
