@@ -57,12 +57,15 @@ public class FXMLController implements Initializable {
 
         // create new timeline for animation, set cycle count, and play the animation
         Timeline animation = new Timeline(new KeyFrame(Duration.millis(50), e -> {
+            double dXBoundary = mAnchorPane.getWidth();
+            double dYBoundary = mAnchorPane.getHeight();
             moveBalls();
             for (Ball ball : mBalls) {
-                mThreadExecutor.execute(new WallCheckTask(ball));
-                mThreadExecutor.execute(new ApplyFrictionTask(ball));
+                ball.move();
+                ball.applyFriction(mFrictionFactor);
+                ball.checkBoundaries(dXBoundary, dYBoundary);
             }
-            mThreadExecutor.execute(new CollisionCheckTask());
+            checkCollisions();
         }));
         animation.setCycleCount(Timeline.INDEFINITE);
         animation.play();
@@ -122,45 +125,8 @@ public class FXMLController implements Initializable {
         mAnchorPane.getChildren().add(ball);
     }
 
-    // apply friction to balls -> reduces the ball velocity based on friction factor
-    private class ApplyFrictionTask extends Task<Void> {
-
-        final private Ball ball;
-        ApplyFrictionTask(Ball ball) {
-            this.ball = ball;
-        }
-
-        @Override
-        protected  Void call() throws  InterruptedException {
-            ball.applyFriction(mFrictionFactor);
-            return null;
-        }  // end call
-    } // end ApplyFrictionTask
-
-
-    // task to check collisions between each ball and the boundaries of the anchorpane -> runs own thread
-     private class WallCheckTask extends Task<Void> {
-
-        final private Ball ball;
-        WallCheckTask(Ball ball) {
-            this.ball = ball;
-        }
-
-        @Override
-        protected Void call() throws InterruptedException {
-            double dXBoundary = mAnchorPane.getWidth();
-            double dYBoundary = mAnchorPane.getHeight();
-            ball.checkBoundaries(dXBoundary, dYBoundary);
-            return null;
-        }  // end call
-    }  // end wallCheck task
-
-
-    // task to check collisions between balls -> runs in own thread
     // http://gamedev.stackexchange.com/questions/20516/ball-collisions-sticking-together
-    private class CollisionCheckTask extends Task<Void> {
-        @Override
-        protected Void call() throws InterruptedException {
+    private void checkCollisions() {
             // variables to store x and y distance
             double xDist, yDist;
 
@@ -204,8 +170,6 @@ public class FXMLController implements Initializable {
                         }  // end if (dotProduct > 0)
                     }  // end if (distSquared...)
                 } // end for (j = i + 1...)
-            }  // end for (i = 0....)
-            return null;
         }  // end call
     }  // end collisionCheck task
 
