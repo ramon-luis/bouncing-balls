@@ -4,8 +4,13 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import java.util.Random;
 
-class Ball extends Circle {
+/**
+ *  Ball Class extends circle: added x and y velocity and mass.  X and y velocity
+ *  are used to move ball during animation.  ApplyFriction() reduces the velocity.
+ */
 
+
+class Ball extends Circle {
 
     private static final Random sRandom = new Random();
 
@@ -40,17 +45,19 @@ class Ball extends Circle {
         mVelocityY = velocityY;
     }
 
+    // used to animate ball
     void move() {
         this.setCenterX(getCenterX() + mVelocityX);
         this.setCenterY(getCenterY() + mVelocityY);
     }
 
+    // changes the velocity
     void applyFriction(double dFrictionFactor) {
         this.setVelocityX(mVelocityX * dFrictionFactor);
         this.setVelocityY(mVelocityY * dFrictionFactor);
     }
 
-    // helper methods
+    // helper method for random color
     private static Color getRandomColor() {
         double dR = sRandom.nextDouble();
         double dG = sRandom.nextDouble();
@@ -60,6 +67,7 @@ class Ball extends Circle {
         return new Color(dR, dG, dB, dOpacity);
     }
 
+    // helper method for random velocity
     private static double getRandomVelocity() {
         return sRandom.nextDouble() * 10 - 5;  // between -5.0 and 5.0
     }
