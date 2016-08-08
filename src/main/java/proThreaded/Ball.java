@@ -3,6 +3,7 @@ package proThreaded;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import java.util.Random;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  *  Ball Class extends circle: added x and y velocity and mass.  X and y velocity
@@ -56,6 +57,32 @@ class Ball extends Circle {
         this.setVelocityX(mVelocityX * dFrictionFactor);
         this.setVelocityY(mVelocityY * dFrictionFactor);
     }
+
+    void checkBoundaries(double dXBoundary, double dYBoundary) {
+        // booleans for location
+        boolean bAtLeftWall = getCenterX() <= getRadius();
+        boolean bAtRightWall = getCenterX() >= (dXBoundary - getRadius());
+        boolean bAtTopWall = getCenterY() <= getRadius();
+        boolean bAtBottomWall = getCenterY() >= (dYBoundary - getRadius());
+
+        // booleans for movement
+        boolean bIsMovingLeft = mVelocityX < 0;
+        boolean bIsMovingRight = mVelocityX > 0;
+        boolean bIsMovingUp = mVelocityY < 0;
+        boolean bIsMovingDown = mVelocityY > 0;
+
+        // check left and right boundary - update velocity
+        if ((bAtLeftWall && bIsMovingLeft) || (bAtRightWall&& bIsMovingRight)) {
+            mVelocityX = -mVelocityX;
+        }
+
+        // check upper and lower boundary - update velocity
+        if ((bAtTopWall && bIsMovingUp) || (bAtBottomWall && bIsMovingDown)) {
+            mVelocityY = -mVelocityY;
+        }
+
+    }
+
 
     // helper method for random color
     private static Color getRandomColor() {

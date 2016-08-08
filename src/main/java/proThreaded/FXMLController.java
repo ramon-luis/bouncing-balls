@@ -19,13 +19,10 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.util.Duration;
 
-/*
-* http://docs.oracle.com/javafx/2/threads/jfxpub-threads.htm:
-* If you implement a background worker by creating a Runnable object and a new thread, at some
-* point, you must communicate with the JavaFX Application thread, either with a result or with the
-* progress of the background task, which is error prone. Instead, use the JavaFX APIs provided by
-* the javafx.concurrent package, which takes care of multithreaded code that interacts with the
-* UI and ensures that this interaction happens on the correct thread.
+/**
+ * Friction and boundary checking are both applied by individual threads per ball.  Loop through the ball list
+ * and start a thread for each ball that checks boundaries and applies friction.
+ * This performs worse then having boundary checking & friction each done by a single thread for all balls.
 * */
 
 public class FXMLController implements Initializable {
@@ -61,9 +58,11 @@ public class FXMLController implements Initializable {
         // create new timeline for animation, set cycle count, and play the animation
         Timeline animation = new Timeline(new KeyFrame(Duration.millis(50), e -> {
             moveBalls();
-            mThreadExecutor.execute(new WallCheckTask());
+            for (Ball ball : mBalls) {
+                mThreadExecutor.execute(new WallCheckTask(ball));
+                mThreadExecutor.execute(new ApplyFrictionTask(ball));
+            }
             mThreadExecutor.execute(new CollisionCheckTask());
-            mThreadExecutor.execute(new ApplyFrictionTask());
         }));
         animation.setCycleCount(Timeline.INDEFINITE);
         animation.play();
@@ -125,58 +124,37 @@ public class FXMLController implements Initializable {
 
     // apply friction to balls -> reduces the ball velocity based on friction factor
     private class ApplyFrictionTask extends Task<Void> {
+
+        final private Ball ball;
+        ApplyFrictionTask(Ball ball) {
+            this.ball = ball;
+        }
+
         @Override
         protected  Void call() throws  InterruptedException {
-            for (Ball ball: mBalls) {
-                ball.applyFriction(mFrictionFactor);
-            }
+            ball.applyFriction(mFrictionFactor);
             return null;
         }  // end call
     } // end ApplyFrictionTask
 
+
     // task to check collisions between each ball and the boundaries of the anchorpane -> runs own thread
      private class WallCheckTask extends Task<Void> {
+
+        final private Ball ball;
+        WallCheckTask(Ball ball) {
+            this.ball = ball;
+        }
+
         @Override
         protected Void call() throws InterruptedException {
-
-            // variables to store size of anchorpane
-            double dWidth = mAnchorPane.getWidth();
-            double dHeight = mAnchorPane.getHeight();
-
-            // loop through list of balls
-            for (Ball ball : mBalls) {
-
-                // store ball radius and velocity to only call 1x each
-                double dRadius = ball.getRadius();
-                double dVelocityX = ball.getVelocityX();
-                double dVelocityY = ball.getVelocityY();
-
-                // booleans for location
-                boolean bAtLeftWall = ball.getCenterX() <= dRadius;
-                boolean bAtRightWall = ball.getCenterX() >= (dWidth - dRadius);
-                boolean bAtTopWall = ball.getCenterY() <= dRadius;
-                boolean bAtBottomWall = ball.getCenterY() >= (dHeight - dRadius);
-
-                // booleans for movement
-                boolean bIsMovingLeft = dVelocityX < 0;
-                boolean bIsMovingRight = dVelocityX > 0;
-                boolean bIsMovingUp = dVelocityY < 0;
-                boolean bIsMovingDown = dVelocityY > 0;
-
-                // check left and right boundary
-                if ((bAtLeftWall && bIsMovingLeft) || (bAtRightWall&& bIsMovingRight)) {
-                    ball.setVelocityX(-dVelocityX);
-                }
-
-                // check upper and lower boundary
-                if ((bAtTopWall && bIsMovingUp) || (bAtBottomWall && bIsMovingDown)) {
-                    ball.setVelocityY(-dVelocityY);
-                }
-
-            } // end for (Ball ball...)
+            double dXBoundary = mAnchorPane.getWidth();
+            double dYBoundary = mAnchorPane.getHeight();
+            ball.checkBoundaries(dXBoundary, dYBoundary);
             return null;
         }  // end call
     }  // end wallCheck task
+
 
     // task to check collisions between balls -> runs in own thread
     // http://gamedev.stackexchange.com/questions/20516/ball-collisions-sticking-together
