@@ -13,6 +13,6 @@
         <Text fx:id="txtSpeed">Animation Speed</Text>
         <Slider fx:id="sldSpeed" min="0" max="10" value="2"  ></Slider>
     </ToolBar>
-    <AnchorPane fx:id="mAnchorPane" prefHeight="450" prefWidth="800" >
-    </AnchorPane>
+    <Pane fx:id="pane" prefWidth="800" prefHeight="500"  >
+    </Pane>
 </VBox>

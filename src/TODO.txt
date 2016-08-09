@@ -1,3 +1,0 @@
-TODO
-ball creep
-end all threads
