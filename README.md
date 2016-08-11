@@ -1,14 +1,16 @@
 # README #
 
-This README would normally document whatever steps are necessary to get your application up and running.
+proThreaded is an application that creates a container of bouncy ball objects.  The container is initially empty: a user can add balls by either (1) clicking anywhere inside the container to add a single ball or (2) clicking the "+10 balls" button that will add 10 random balls to the container.  Every ball that is added to the container consists of a random radius, color, opacity, and velocity.  Users can control the active friction of the environment and the animations speed via sliders.  The container / active window can be resized and balls will adjust accordingly to the new container boundaries.
 
-### What is this repository for? ###
+### Application Highlights ###
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+* code has been refactored from Java Swing to JavaFX in order to boost performance
+* a custom Timeline is used for animation
+* ball movement checks the distance to current boundaries and adjusts the applied velocity for that specific animation frame in order to prevent balls from going past boundaries
+* ball movement also performs a check 
 
-### Branh Summary ###
+
+### Branch Summary ###
 
 There are 3 branches that represent 3 possible solutions:
 * single-thread
@@ -41,7 +43,7 @@ This is a multi-threaded solution where each ball is moved in the main javafx th
 ```
 #!java
 
-*Exception in thread "JavaFX Application Thread" java.lang.OutOfMemoryError: unable to create new native thread*
+Exception in thread "JavaFX Application Thread" java.lang.OutOfMemoryError: unable to create new native thread
 ```
 
 This is identified as an error from calling too many unnecessary threads: [http://stackoverflow.com/questions/16789288/java-lang-outofmemoryerror-unable-to-create-new-native-thread](Link URL)
