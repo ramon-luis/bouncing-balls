@@ -55,26 +55,26 @@ class Ball extends Circle {
         double dYAdjust = mVelocityY;
 
         // update if outside bounds already
-        if (getCenterX() < 0) {
+        if (getCenterX() < getRadius()) {
             setCenterX(getRadius());
         } else if (getCenterX() + getRadius() > dXBoundary) {
             setCenterX(dXBoundary - getRadius());
         }
-        if (getCenterY() < 0) {
+        if (getCenterY() < getRadius()) {
             setCenterY(getRadius());
         } else if (getCenterY() + getRadius() > dYBoundary) {
             setCenterY(dYBoundary - getRadius());
         }
 
         // update the xadjust if a move will take ball outside of x bounds
-        if (isMovingLeft() && getCenterX() - mVelocityX < getRadius()) {
+        if (isMovingLeft() && getCenterX() + mVelocityX < getRadius()) {
             dXAdjust = Math.max(getRadius() - getCenterX(), mVelocityX);
         } else if (isMovingRight() && getCenterX() + mVelocityX > dXBoundary - getRadius()) {
             dXAdjust = Math.min(dXBoundary - (getRadius() + getCenterX()), mVelocityX);
         }
 
         // update the yadjust if a move will take ball outside of y bounds
-        if (isMovingUp() && getCenterY() - mVelocityY < getRadius()) {
+        if (isMovingUp() && getCenterY() + mVelocityY < getRadius()) {
             dYAdjust = Math.max(getRadius() - getCenterY(), mVelocityY);
         } else if (isMovingDown() && getCenterY() + mVelocityY > dYBoundary - getRadius()) {
             dYAdjust = Math.min(dYBoundary - (getRadius() + getCenterY()), mVelocityY);
