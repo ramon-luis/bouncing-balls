@@ -17,7 +17,7 @@ import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
 /**
- * No threads: all calculations are handled by main GUI thread in JavaFX timeline.
+ * Single thread: all calculations are handled by main GUI thread in JavaFX timeline.
  * This implementation performs very well with no noticeable lag, even with many balls added.
  * A simple ArrayList can be used since there is no concurrency.
 * */
@@ -35,7 +35,7 @@ public class FXMLController implements Initializable {
     private VBox vbFrame;
 
     @FXML
-    private Pane pane;
+    private Pane mPane;
 
     @FXML
     private ToggleButton tgbPause;
@@ -55,9 +55,9 @@ public class FXMLController implements Initializable {
 
         // create new timeline for animation, set cycle count, and play the animation
         Timeline animation = new Timeline(new KeyFrame(Duration.millis(50), e -> {
-            // get current bounds of pane
-            double dXBoundary = pane.getWidth();
-            double dYBoundary = pane.getHeight();
+            // get current bounds of mPane
+            double dXBoundary = mPane.getWidth();
+            double dYBoundary = mPane.getHeight();
 
             // update each ball: loop through list one time each animation cycle
             for (Ball ball : mBalls) {
@@ -79,10 +79,10 @@ public class FXMLController implements Initializable {
             }
         });
 
-        // pane properties
-        pane.addEventFilter(MouseEvent.MOUSE_CLICKED, this::addSingleBall);
-        pane.prefWidthProperty().bind(vbFrame.widthProperty());
-        pane.prefHeightProperty().bind(vbFrame.heightProperty());
+        // mPane properties
+        mPane.addEventFilter(MouseEvent.MOUSE_CLICKED, this::addSingleBall);
+        mPane.prefWidthProperty().bind(vbFrame.widthProperty());
+        mPane.prefHeightProperty().bind(vbFrame.heightProperty());
 
         // button to add 10 balls on single click
         btnAdd10.setOnAction(e -> addTenBalls());
@@ -106,8 +106,8 @@ public class FXMLController implements Initializable {
     // add 10 balls
     private void addTenBalls() {
         double dMinXorY = MAX_RADIUS;
-        double dMaxX = pane.getWidth() - MAX_RADIUS;
-        double dMaxY = pane.getHeight() - MAX_RADIUS;
+        double dMaxX = mPane.getWidth() - MAX_RADIUS;
+        double dMaxY = mPane.getHeight() - MAX_RADIUS;
         for (int i = 0; i < 10; i++) {
             double dCenterX = getRandomInRange(dMinXorY, dMaxX);
             double dCenterY = getRandomInRange(dMinXorY, dMaxY);
@@ -120,7 +120,7 @@ public class FXMLController implements Initializable {
         double dRadius = getRandomInRange(MIN_RADIUS, MAX_RADIUS);
         Ball ball = new Ball(dCenterX, dCenterY, dRadius);
         mBalls.add(ball);
-        pane.getChildren().add(ball);
+        mPane.getChildren().add(ball);
     }
 
     // helper method to get a random double in a certain range

@@ -7,8 +7,8 @@ import java.util.ArrayList;
 import java.util.Random;
 
 /**
- *  Ball Class extends circle: added x and y velocity and mass.  X and y velocity
- *  are used to move ball during animation.  ApplyFriction() reduces the velocity.
+ *  Ball Class extends circle.
+ *  X and y velocity are used to move ball during animation.
  */
 
 
@@ -91,6 +91,7 @@ class Ball extends Circle {
         mVelocityY = mVelocityY * dFrictionFactor;
     }
 
+    // check if ball velocity needs to be reversed: bounce off a wall
     void checkBoundaries(double dXBoundary, double dYBoundary) {
         // booleans for location
         boolean bAtLeftWall = getCenterX() <= getRadius();
