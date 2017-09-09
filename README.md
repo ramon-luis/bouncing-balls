@@ -85,5 +85,5 @@ Or open in your favorite IDE (Eclipse, IntelliJ) and run Main in MainApp.java.
 
 ## Acknowledgments
 
-* Thank you to Adam Gerber at the University of Chicago for providing the base code & inspiration, as well as introducing me to the world of computer programming!
+* Thank you to Adam Gerber at the University of Chicago
 
