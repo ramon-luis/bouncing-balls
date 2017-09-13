@@ -6,6 +6,8 @@ Bouncing Balls is an application that uses a container of bouncing ball objects 
 
 Every ball that is added to the container consists of a random radius, color, opacity, and velocity.  Users can control the active friction of the environment and the animations speed via sliders.  The container / active window can be resized and balls will adjust accordingly to the new container boundaries.
 
+![Bouncing Balls Screenshot 1](https://github.com/ramon-luis/bouncing-balls/raw/master/demo/bouncing-balls-screenshot-1.png "Bouncing Balls Screenshot 1")
+
 ## Application Highlights
   * a custom Timeline is used for animation  
   * ball movement checks:
